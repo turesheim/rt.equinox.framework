@@ -239,6 +239,12 @@ public class Main {
 	public static final String VARIABLE_DELIM_STRING = "$"; //$NON-NLS-1$
 	public static final char VARIABLE_DELIM_CHAR = '$';
 
+	//for change detection in the base when running in shared install mode
+	private static final long NO_TIMESTAMP = -1;
+	private static final String CONFIG_INI_TIMESTAMP = "configIniTimestamp"; //$NON-NLS-1$
+	private static final String BASE_TIMESTAMPS = ".baseTimestamps"; //$NON-NLS-1$
+	private static final String PROP_IGNORE_USER_CONFIGURATION = "eclipse.ignoreUserConfiguration"; //$NON-NLS-1$
+
 	/**
 	 * A structured form for a version identifier.
 	 * 
@@ -1776,7 +1782,7 @@ public class Main {
 			}
 		}
 
-		// Now we know where the base configuration is supposed to be.  Go ahead and load
+		// Now we know where the base configuration is supposed to be.  Go ahead and load  PASCAL _CHANGE THE COMMENT
 		// it and merge into the System properties.  Then, if cascaded, read the parent configuration
 		// Note that the parent may or may not be the same parent as we read above since the 
 		// base can define its parent.  The first parent we read was either defined by the user
@@ -1786,11 +1792,11 @@ public class Main {
 		Properties configuration = baseConfiguration;
 		if (configuration == null || !getConfigurationLocation().equals(baseConfigurationLocation))
 			configuration = loadConfiguration(getConfigurationLocation());
-		mergeProperties(System.getProperties(), configuration, null);
-		if ("false".equalsIgnoreCase(System.getProperty(PROP_CONFIG_CASCADED))) //$NON-NLS-1$
-			// if we are not cascaded then remove the parent property even if it was set.
+
+		if (configuration != null && "false".equalsIgnoreCase(configuration.getProperty(PROP_CONFIG_CASCADED))) { //$NON-NLS-1$
 			System.getProperties().remove(PROP_SHARED_CONFIG_AREA);
-		else {
+			configuration.remove(PROP_SHARED_CONFIG_AREA);
+		} else {
 			ensureAbsolute(PROP_SHARED_CONFIG_AREA);
 			URL sharedConfigURL = buildLocation(PROP_SHARED_CONFIG_AREA, null, ""); //$NON-NLS-1$
 			if (sharedConfigURL == null)
@@ -1809,8 +1815,23 @@ public class Main {
 					// if the parent we are about to read is the same as the base config we read above,
 					// just reuse the base
 					Properties sharedConfiguration = baseConfiguration;
-					if (!sharedConfigURL.equals(baseConfigurationLocation))
+					if (!sharedConfigURL.equals(baseConfigurationLocation)) {
 						sharedConfiguration = loadConfiguration(sharedConfigURL);
+					}
+					long sharedConfigTimestamp = getCurrentConfigIniBaseTimestamp(sharedConfigURL);
+					long lastKnownBaseTimestamp = getLastKnownConfigIniBaseTimestamp();
+					if (debug)
+						System.out.println("Timestamps found: \n\t config.ini in the base: " + sharedConfigTimestamp + "\n\t remembered " + lastKnownBaseTimestamp); //$NON-NLS-1$ //$NON-NLS-2$
+
+					//merge user configuration since the base has not changed.
+					if (lastKnownBaseTimestamp == sharedConfigTimestamp || lastKnownBaseTimestamp == NO_TIMESTAMP) {
+						mergeProperties(System.getProperties(), configuration, null);
+					} else {
+						configuration = null;
+						System.setProperty(PROP_IGNORE_USER_CONFIGURATION, Boolean.TRUE.toString());
+					}
+
+					//now merge the base configuration
 					mergeProperties(System.getProperties(), sharedConfiguration, configuration);
 					System.getProperties().put(PROP_SHARED_CONFIG_AREA, sharedConfigURL.toExternalForm());
 					if (debug)
@@ -1829,6 +1850,37 @@ public class Main {
 			System.getProperties().put(PROP_FRAMEWORK, urlString);
 			bootLocation = urlString;
 		}
+	}
+
+	private long getCurrentConfigIniBaseTimestamp(URL url) {
+		try {
+			url = new URL(url, CONFIG_FILE);
+		} catch (MalformedURLException e1) {
+			return NO_TIMESTAMP;
+		}
+		URLConnection connection = null;
+		try {
+			connection = url.openConnection();
+		} catch (IOException e) {
+			return NO_TIMESTAMP;
+		}
+		return connection.getLastModified();
+	}
+
+	//Get the timestamp that has been remembered
+	private long getLastKnownConfigIniBaseTimestamp() {
+		if (debug)
+			System.out.println("Loading timestamp file from:\n\t " + getConfigurationLocation() + "   " + BASE_TIMESTAMPS); //$NON-NLS-1$ //$NON-NLS-2$
+		Properties result;
+		try {
+			result = load(getConfigurationLocation(), BASE_TIMESTAMPS);
+		} catch (IOException e) {
+			if (debug)
+				System.out.println("\tNo timestamp file found"); //$NON-NLS-1$
+			return NO_TIMESTAMP;
+		}
+		String timestamp = result.getProperty(CONFIG_INI_TIMESTAMP);
+		return Long.parseLong(timestamp);
 	}
 
 	/**
