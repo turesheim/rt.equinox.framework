@@ -136,6 +136,14 @@
 		</copy>
 		<chmod perm="755" dir="${feature.base}/linux.gtk.x86/${collectingFolder}" includes="launcher" /> 
 	</target>
+	<target name="rootFileslinux_gtk_amrv6l">
+		<mkdir dir="${feature.base}/linux.gtk.amrv6l/${collectingFolder}"/>
+		<copy todir="${feature.base}/linux.gtk.amrv6l/${collectingFolder}" failonerror="true" overwrite="true">
+			<fileset dir="${basedir}/bin/gtk/linux/amrv6l" includes="**"			/>
+			<fileset dir="${basedir}/gtk_root" includes="**"			/>
+		</copy>
+		<chmod perm="755" dir="${feature.base}/linux.gtk.armv6l/${collectingFolder}" includes="launcher" /> 
+	</target>
 	<target name="rootFileslinux_gtk_ppc">
 		<mkdir dir="${feature.base}/linux.gtk.ppc/${collectingFolder}"/>
 		<copy todir="${feature.base}/linux.gtk.ppc/${collectingFolder}" failonerror="true" overwrite="true">
@@ -241,6 +249,7 @@
 		<antcall target="rootFileslinux_gtk_x86_64"/>
 		<antcall target="rootFileslinux_gtk_ia64"/>
 		<antcall target="rootFileslinux_gtk_s390x"/>
+		<antcall target="rootFileslinux_gtk_armv6l"/>
 		<antcall target="rootFilessolaris_gtk_sparc"/>
 		<antcall target="rootFilessolaris_gtk_x86"/>
 		<antcall target="rootFilesaix_gtk_ppc64"/>

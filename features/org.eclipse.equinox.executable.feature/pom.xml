@@ -220,6 +220,36 @@
       </build>
     </profile>
     <profile>
+      <id>build-native-launchers-gtk.linux.armv6l</id>
+      <activation>
+        <property>
+          <name>native</name>
+          <value>gtk.linux.armv6l</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>compile-executable-natives</id>
+                <phase>generate-resources</phase>
+                <configuration>
+                  <target>
+                    <ant antfile="build.xml" dir="library/gtk/" target="build_eclipse" />
+                  </target>
+                </configuration>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>build-native-launchers-win32.win32.x86_64</id>
       <activation>
         <property>
@@ -343,6 +373,7 @@
                         <include name="gtk/linux/ppc64/**/*" />
                         <include name="gtk/linux/x86/**/*" />
                         <include name="gtk/linux/x86_64/**/*" />
+                        <include name="gtk/linux/armv6l/**/*" />
                         <include name="gtk/solaris/sparc/**/*" />
                         <include name="gtk/solaris/x86/**/*" />
                         <include name="win32/win32/x86/**/*" />
